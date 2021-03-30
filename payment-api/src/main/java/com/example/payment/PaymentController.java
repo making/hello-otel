@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
 	private final AtomicBoolean available = new AtomicBoolean(true);
 
+	private final PaymentService paymentService;
+
+	public PaymentController(PaymentService paymentService) {
+		this.paymentService = paymentService;
+	}
+
 	@PostMapping(path = "/")
 	public ResponseEntity<Void> payment(@RequestBody JsonNode body) throws InterruptedException {
 		if (!available.get()) {
@@ -26,11 +32,11 @@ public class PaymentController {
 			return ResponseEntity.badRequest().build();
 		}
 		final BigDecimal price = body.get("price").decimalValue();
-		if (price.compareTo(BigDecimal.valueOf(100)) > 0) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).build();
+		if (this.paymentService.authorize(price)) {
+			return ResponseEntity.status(HttpStatus.ACCEPTED).build();
 		}
 		else {
-			return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+			return ResponseEntity.status(HttpStatus.CONFLICT).build();
 		}
 	}
 
